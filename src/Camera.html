@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="EditPlus®">
+  <meta name="Author" content="">
+  <meta name="Keywords" content="">
+  <meta name="Description" content="">
+  <title>Document</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <!-- 引入组件库 -->
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+
+  <style>
+    ul li {
+      list-style: none;
+    }
+
+    /*     .img-box {
+      height: 500px;
+      width: 230px;
+      margin-left: 10px;
+      display: flex;
+      flex-direction: column;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      align-items: center;
+    } */
+    .img-box {
+      height: 500px;
+      width: 130px;
+      box-sizing: border-box;
+      overflow: auto
+    }
+
+    .box {
+      display: flex;
+      box-sizing: border-box;
+    }
+
+    .column {
+      flex: 16;
+    }
+
+    .column:nth-child(2) {
+      flex: 8;
+      padding-left: 10px;
+    }
+
+    .video {
+
+      width: 500px;
+      height: 500px;
+    }
+
+    .camera-active {
+      background-color: black;
+    }
+
+    .el-dialog__body {
+      padding: 10px 20px 10px 20px;
+
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app">
+    <div>
+      <el-button size="small" type="primary" @click="open()">开启摄像头</el-button>
+      <el-button size="small" type="primary" @click="closeMedia()">关闭摄像头</el-button>
+      <canvas id="canvas" width="500px" height="500px" style="display: none;"></canvas>
+    </div>
+
+    <el-dialog title="拍照信息" :visible.sync="dialogFormVisible" :show-close="false" :before-close="close" width="675px">
+      <div slot="title">设置</div>
+      <el-card :body-style="elCardBodyStyle">
+        <div class="box">
+          <div class="column">
+            <el-card :body-style="elCardBodyStyle">
+              <video :class="[isCameraActive?'camera-active':'','video']" autoplay="autoplay"></video>
+            </el-card>
+          </div>
+          <div class=" column">
+            <el-card :body-style="elCardBodyStyle">
+              <div class="img-box">
+                <img v-for="(item,index) in listPhotoSrc" :key="index" :src="item" alt="" class="photo" width="100px"
+                  height="100px">
+              </div>
+            </el-card>
+
+          </div>
+        </div>
+
+        <div>
+          <el-button size="small" type="primary" @click="openMedia()">开启摄像头</el-button>
+          <el-button size="small" type="primary" @click="closeMedia()">关闭摄像头</el-button>
+          <el-button size="small" type="primary" @click="takePhoto()">拍照</el-button>
+          <el-button size="small" type="primary" @click="handleComplete">确 定</el-button>
+          <el-button size="small" @click="resetData">清空</el-button>
+          <el-button size="small" @click="close">退出</el-button>
+        </div>
+      </el-card>
+    </el-dialog>
+  </div>
+
+  <script>
+    var app = new Vue({
+      el: '#app',
+      data: {
+        isCameraActive: false,
+        dialogFormVisible: false,
+        elCardBodyStyle: { padding: '.0125rem' },
+        mediaStream: {},
+        listPhotoSrc: [],
+        listImg: []
+      },
+
+      methods: {
+        openMedia () {
+          let srcVideo = document.querySelector('.video')
+          this.dialogFormVisible = true
+          this.photoSrc = ''
+          let constraints = {
+            audio: false, //音频轨道
+            video: {
+              width: 500,
+              height: 500
+            }  // 视频轨道
+          }
+
+          let mediaPromise = navigator.mediaDevices.getUserMedia(constraints)
+          mediaPromise.then((stream) => {
+            /* 使用这个stream stream */
+            this.mediaStream = stream
+
+            srcVideo.srcObject = stream
+            srcVideo.play()
+            this.isCameraActive = true
+          }).catch(function (err) {
+            /* 处理error */
+            alert(err)
+          })
+        },
+        // 拍照
+        takePhoto () {
+          let srcVideo = document.querySelector('video')
+          let canvas = document.querySelector('#canvas')
+          //获取 `canvas`元素，根据`srcVideo`中的数据进行图片绘制 `ctx.drawImage()`；
+          let ctx = canvas.getContext('2d')
+          ctx.drawImage(srcVideo, 0, 0, 500, 500)
+          //将 `canvas`绘制的图片信息，展示在 `img`标签中；
+          console.log(canvas.toDataURL())
+          //this.photoSrc = canvas.toDataURL()
+          this.listPhotoSrc.push(canvas.toDataURL())
+          //closeMedia();
+        },
+
+        // 关闭摄像头
+        close () {
+          this.closeMedia()
+          this.resetData()
+
+        },
+        closeMedia () {
+          this.mediaStream.getTracks().forEach(track => {
+            track.stop()
+          })
+          this.isCameraActive = false
+          let srcVideo = document.querySelector('video')
+          srcVideo.srcObject = null
+          this.mediaStream = null
+        },
+        resetData () {
+          this.listPhotoSrc = []
+          this.dialogFormVisible = false
+        },
+        handleComplete () {
+          this.listImg = JSON.parse(JSON.stringify(this.listPhotoSrc))
+          console.log('拍照结果：', this.listImg)
+          this.close()
+        },
+        open () {
+          this.dialogFormVisible = true
+          this.$nextTick(() => {
+            this.openMedia()
+          })
+        }
+      }
+    })
+  </script>
+</body>
+
+</html>
